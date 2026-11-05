@@ -302,11 +302,45 @@
     });
   });
 
-   // ----- Halaman berita: bagikan (salin tautan / email) -----
+   // ----- Halaman berita: salin tautan + pop up -----
+  function showToast(text) {
+    let t = $("#toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "toast";
+      t.className = "toast-copy";
+      t.setAttribute("role", "status");
+      t.setAttribute("aria-live", "polite");
+      document.body.appendChild(t);
+    }
+    t.innerHTML = '<i class="bi bi-check-circle-fill"></i> ' + text;
+    t.classList.add("show");
+    clearTimeout(showToast.timer);
+    showToast.timer = setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+    // Cadangan untuk browser/konteks yang tidak mendukung Clipboard API
+    return new Promise((resolve, reject) => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy") ? resolve() : reject(); } catch (e) { reject(e); }
+      document.body.removeChild(ta);
+    });
+  }
+
   $$(".js-copy").forEach(b => b.addEventListener("click", () => {
-    const done = () => { b.classList.add("done"); b.title = "Tautan disalin"; setTimeout(() => { b.classList.remove("done"); b.title = "Salin tautan"; }, 2000); };
-    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(location.href).then(done, () => prompt("Salin tautan:", location.href));
-    else prompt("Salin tautan:", location.href);
+    copyText(location.href).then(() => {
+      b.classList.add("done");
+      b.title = en ? "Link copied" : "Tautan disalin";
+      setTimeout(() => { b.classList.remove("done"); b.title = en ? "Copy link" : "Salin tautan"; }, 2000);
+      showToast(en ? "News link copied" : "Tautan berita berhasil disalin");
+    }, () => prompt(en ? "Copy link:" : "Salin tautan:", location.href));
   }));
-  $$(".js-mail").forEach(a => { a.href = "mailto:?subject=" + encodeURIComponent(document.title) + "&body=" + encodeURIComponent(location.href); });
 })();
